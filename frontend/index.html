@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>World Cup Corner Radar</title>
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #121b2b;
+      --panel2: #18263b;
+      --text: #f4f7fb;
+      --muted: #8ea0b8;
+      --border: rgba(255,255,255,.09);
+      --hot: #ff4d2e;
+      --strong: #ff9d2e;
+      --neutral: #ffd84d;
+      --weak: #4da3ff;
+      --cold: #9fb3c8;
+      --ok: #23d18b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255,77,46,.20), transparent 28%),
+        radial-gradient(circle at top right, rgba(77,163,255,.15), transparent 30%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,11,20,.9);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(12px);
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
+    .sub { margin-top: 8px; color: var(--muted); font-size: 14px; }
+    main { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    .topgrid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat, .card, .controls {
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+    }
+    .stat { padding: 14px; }
+    .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .v { font-size: 24px; font-weight: 800; margin-top: 6px; }
+    .controls {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 16px;
+    }
+    label { display:block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    input, select, button, textarea {
+      width: 100%;
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 700;
+      border: none;
+      background: linear-gradient(135deg, #ff9d2e, #4da3ff);
+      color: #071019;
+    }
+    .list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card { padding: 16px; }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .match { font-size: 18px; font-weight: 800; line-height: 1.2; }
+    .meta { margin-top: 6px; color: var(--muted); font-size: 13px; line-height: 1.35; }
+    .pill {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(255,255,255,.04);
+      white-space: nowrap;
+    }
+    .hot { color: var(--hot); }
+    .strong { color: var(--strong); }
+    .neutral { color: var(--neutral); }
+    .weak { color: var(--weak); }
+    .cold { color: var(--cold); }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .mini {
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+    }
+    .mini .mk { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .mini .mv { margin-top: 6px; font-size: 16px; font-weight: 800; }
+    .actions {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .analyst {
+      margin-top: 14px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      display: none;
+    }
+    .analyst.open { display: block; }
+    .analyst-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 12px;
+    }
+    .analysis-box, .chat-box {
+      background: rgba(0,0,0,.22);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 80px;
+    }
+    .chat-thread {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .bubble {
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      max-width: 100%;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .bubble.user { background: rgba(77,163,255,.12); }
+    .bubble.assistant { background: rgba(255,157,46,.10); }
+    .chat-input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .error {
+      padding: 14px;
+      border: 1px solid rgba(255,77,46,.4);
+      background: rgba(255,77,46,.08);
+      border-radius: 14px;
+      color: #ffd0c8;
+      margin-bottom: 16px;
+      display: none;
+    }
+    @media (max-width: 980px) {
+      .topgrid { grid-template-columns: 1fr 1fr; }
+      .controls, .analyst-grid, .chat-input-row, .stats-row { grid-template-columns: 1fr; }
+      .card-top { flex-direction: column; }
+    }
+    @media (max-width: 520px) {
+      .topgrid { grid-template-columns: 1fr; }
+      main { padding: 14px; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>World Cup Corner Radar</h1>
+    <div class="sub">Stable MVP + inline Analyst Mode</div>
+  </header>
+
+  <main>
+    <div id="error" class="error"></div>
+
+    <section class="topgrid">
+      <div class="stat"><div class="k">Backend</div><div class="v" id="backendStatus">—</div></div>
+      <div class="stat"><div class="k">World Cup Matches</div><div class="v" id="matchesCount">—</div></div>
+      <div class="stat"><div class="k">Current View</div><div class="v" id="currentView">—</div></div>
+      <div class="stat"><div class="k">Displayed</div><div class="v" id="viewCount">—</div></div>
+    </section>
+
+    <section class="controls">
+      <div>
+        <label>View</label>
+        <select id="viewSelect">
+          <option value="upcoming">Upcoming</option>
+          <option value="live">Live</option>
+          <option value="historical">Historical</option>
+        </select>
+      </div>
+      <div>
+        <label>Limit</label>
+        <input id="limitInput" type="number" min="1" max="100" value="20">
+      </div>
+      <div>
+        <label>Min Over12 %</label>
+        <input id="minProbInput" type="number" min="0" max="100" step="0.1" value="0">
+      </div>
+      <div>
+        <label>Search</label>
+        <input id="searchInput" type="text" placeholder="Brazil, Germany...">
+      </div>
+      <div>
+        <button onclick="loadMatches()">Refresh</button>
+      </div>
+    </section>
+
+    <section id="matchList" class="list">
+      <div class="card">Loading...</div>
+    </section>
+  </main>
+
+  <script>
+    let currentView = 'upcoming';
+    let allMatches = [];
+    let ollamaModels = [];
+    const analystState = {};
+
+    function thermometerClass(value) {
+      if (!value) return "";
+      if (value.includes("Hot")) return "hot";
+      if (value.includes("Strong")) return "strong";
+      if (value.includes("Neutral")) return "neutral";
+      if (value.includes("Weak")) return "weak";
+      if (value.includes("Cold")) return "cold";
+      return "";
+    }
+
+    function formatFixtureDate(value) {
+      if (!value) return { text: "Date N/A", ts: 0 };
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return { text: value, ts: 0 };
+      const day = d.toLocaleDateString("it-IT", { weekday: "short", timeZone: "Europe/Rome" });
+      const date = d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Rome" });
+      const time = d.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/Rome" });
+      return { text: `${day} · ${date} · ${time} Italia`, ts: d.getTime() };
+    }
+
+    function showError(message) {
+      const el = document.getElementById("error");
+      el.textContent = message;
+      el.style.display = "block";
+    }
+
+    function clearError() {
+      const el = document.getElementById("error");
+      el.textContent = "";
+      el.style.display = "none";
+    }
+
+    async function getJson(url, options = {}) {
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(`${url} -> ${res.status}`);
+      return await res.json();
+    }
+
+    async function loadHealth() {
+      const data = await getJson("/api/radar/health");
+      document.getElementById("backendStatus").textContent = data.ok ? "OK" : "ERROR";
+      document.getElementById("matchesCount").textContent = data.worldcup_matches ?? "—";
+    }
+
+    async function loadModels() {
+      try {
+        const data = await getJson("/api/agent/models");
+        if (data.ok && Array.isArray(data.models)) {
+          ollamaModels = data.models;
+        }
+      } catch (e) {
+        ollamaModels = [];
+      }
+    }
+
+    function getFilteredRows() {
+      const q = document.getElementById("searchInput").value.trim().toLowerCase();
+      let rows = [...allMatches];
+      if (q) {
+        rows = rows.filter(m =>
+          m.match.toLowerCase().includes(q) ||
+          m.home_team_name.toLowerCase().includes(q) ||
+          m.away_team_name.toLowerCase().includes(q)
+        );
+      }
+      rows.sort((a, b) => {
+        if (b.over12_corner_probability !== a.over12_corner_probability) {
+          return b.over12_corner_probability - a.over12_corner_probability;
+        }
+        return formatFixtureDate(a.fixture_date).ts - formatFixtureDate(b.fixture_date).ts;
+      });
+      return rows;
+    }
+
+    function ensureFixtureState(id) {
+      if (!analystState[id]) {
+        analystState[id] = {
+          open: false,
+          mode: "prematch",
+          model: "",
+          perspectives: "conservative,aggressive,contrarian,live_sensitive",
+          analysis: "",
+          chatHistory: [],
+          chatInput: "",
+          loadingAnalysis: false,
+          loadingChat: false
+        };
+      }
+      return analystState[id];
+    }
+
+    function modelsOptions(selected) {
+      const base = [`<option value="" ${selected === "" ? "selected" : ""}>auto</option>`];
+      for (const m of ollamaModels) {
+        base.push(`<option value="${m}" ${selected === m ? "selected" : ""}>${m}</option>`);
+      }
+      return base.join("");
+    }
+
+    function renderMatches() {
+      const rows = getFilteredRows();
+      document.getElementById("currentView").textContent = currentView;
+      document.getElementById("viewCount").textContent = rows.length;
+
+      const box = document.getElementById("matchList");
+      if (!rows.length) {
+        box.innerHTML = `<div class="card">No matches available.</div>`;
+        return;
+      }
+
+      box.innerHTML = rows.map(m => {
+        const fd = formatFixtureDate(m.fixture_date);
+        const cls = thermometerClass(m.thermometer);
+        const st = ensureFixtureState(m.fixture_id);
+        const canAnalyze = currentView === "upcoming" || currentView === "live";
+
+        return `
+          <div class="card">
+            <div class="card-top">
+              <div>
+                <div class="match">${m.match}</div>
+                <div class="meta">Fixture ${m.fixture_id} · Season ${m.season}</div>
+                <div class="meta">${fd.text}</div>
+              </div>
+              <div class="pill ${cls}">${m.thermometer}</div>
+            </div>
+
+            <div class="stats-row">
+              <div class="mini"><div class="mk">Over12</div><div class="mv">${m.over12_corner_probability}%</div></div>
+              <div class="mini"><div class="mk">Over14</div><div class="mv">${m.over14_corner_probability}%</div></div>
+              <div class="mini"><div class="mk">Expected Corners</div><div class="mv">${m.expected_corners}</div></div>
+              <div class="mini"><div class="mk">Shots</div><div class="mv">${m.total_shots_range[0]}–${m.total_shots_range[1]}</div></div>
+              <div class="mini"><div class="mk">Shots on Target</div><div class="mv">${m.shots_on_target_range[0]}–${m.shots_on_target_range[1]}</div></div>
+            </div>
+
+            <div class="actions">
+              ${canAnalyze ? `<button onclick="toggleAnalyst(${m.fixture_id})">Analyst Mode</button>` : ``}
+            </div>
+
+            ${canAnalyze ? `
+              <div id="analyst-${m.fixture_id}" class="analyst ${st.open ? 'open' : ''}">
+                <div class="analyst-grid">
+                  <div>
+                    <label>Mode</label>
+                    <select onchange="setFixtureField(${m.fixture_id}, 'mode', this.value)">
+                      <option value="prematch" ${st.mode === 'prematch' ? 'selected' : ''}>prematch</option>
+                      <option value="live" ${st.mode === 'live' ? 'selected' : ''}>live</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label>Model</label>
+                    <select onchange="setFixtureField(${m.fixture_id}, 'model', this.value)">
+                      ${modelsOptions(st.model)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Perspectives</label>
+                    <input value="${st.perspectives.replace(/"/g, '&quot;')}" oninput="setFixtureField(${m.fixture_id}, 'perspectives', this.value)">
+                  </div>
+                  <div>
+                    <button onclick="runAnalysis(${m.fixture_id})">${st.loadingAnalysis ? 'Analyzing...' : 'Analyze'}</button>
+                  </div>
+                </div>
+
+                <div class="section-title" style="color: var(--muted); font-size:12px; text-transform:uppercase; margin-bottom:8px;">Analysis</div>
+                <div class="analysis-box" id="analysis-box-${m.fixture_id}">${st.analysis || 'No analysis yet.'}</div>
+
+                <div class="section-title" style="color: var(--muted); font-size:12px; text-transform:uppercase; margin:14px 0 8px;">Chat</div>
+                <div class="chat-thread" id="chat-thread-${m.fixture_id}">
+                  ${st.chatHistory.length ? st.chatHistory.map(msg => `
+                    <div class="bubble ${msg.role === 'user' ? 'user' : 'assistant'}">${escapeHtml(msg.content)}</div>
+                  `).join('') : '<div class="chat-box">No chat yet.</div>'}
+                </div>
+                <div class="chat-input-row">
+                  <div>
+                    <label>Ask about this match</label>
+                    <textarea rows="3" oninput="setFixtureField(${m.fixture_id}, 'chatInput', this.value)">${st.chatInput}</textarea>
+                  </div>
+                  <div>
+                    <button onclick="sendChat(${m.fixture_id})">${st.loadingChat ? 'Sending...' : 'Send'}</button>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function setFixtureField(id, field, value) {
+      const st = ensureFixtureState(id);
+      st[field] = value;
+    }
+
+    function toggleAnalyst(id) {
+      const st = ensureFixtureState(id);
+      st.open = !st.open;
+      renderMatches();
+    }
+
+    async function runAnalysis(id) {
+      const st = ensureFixtureState(id);
+      st.loadingAnalysis = true;
+      renderMatches();
+      try {
+        const data = await getJson("/api/agent/analyze-fixture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fixture_id: id,
+            mode: st.mode,
+            model: st.model || null,
+            perspectives: st.perspectives.split(",").map(x => x.trim()).filter(Boolean)
+          })
+        });
+
+        const a = data.analysis || {};
+        let out = "";
+        if (a.summary) out += `Summary\n${a.summary}\n\n`;
+        if (Array.isArray(a.perspectives)) {
+          for (const p of a.perspectives) {
+            out += `${(p.name || 'view').toUpperCase()}\n`;
+            if (p.thesis) out += `${p.thesis}\n`;
+            if (Array.isArray(p.evidence) && p.evidence.length) out += `Evidence: ${p.evidence.join(" | ")}\n`;
+            if (Array.isArray(p.risk_flags) && p.risk_flags.length) out += `Risks: ${p.risk_flags.join(" | ")}\n`;
+            out += `\n`;
+          }
+        }
+        if (a.final_take) {
+          out += `Final Take\n`;
+          if (a.final_take.most_supported_view) out += `Most supported: ${a.final_take.most_supported_view}\n`;
+          if (a.final_take.confidence_note) out += `Confidence: ${a.final_take.confidence_note}\n`;
+          if (Array.isArray(a.final_take.data_gaps) && a.final_take.data_gaps.length) out += `Gaps: ${a.final_take.data_gaps.join(" | ")}\n`;
+        }
+        st.analysis = out || JSON.stringify(data, null, 2);
+      } catch (e) {
+        st.analysis = "Analysis error: " + e.message;
+      }
+      st.loadingAnalysis = false;
+      renderMatches();
+    }
+
+    async function sendChat(id) {
+      const st = ensureFixtureState(id);
+      const question = (st.chatInput || "").trim();
+      if (!question) return;
+
+      st.loadingChat = true;
+      st.chatHistory.push({ role: "user", content: question });
+      st.chatInput = "";
+      renderMatches();
+
+      try {
+        const data = await getJson("/api/agent/chat-fixture", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fixture_id: id,
+            question,
+            mode: st.mode,
+            model: st.model || null,
+            history: st.chatHistory
+          })
+        });
+        st.chatHistory.push({ role: "assistant", content: data.answer || "No answer." });
+      } catch (e) {
+        st.chatHistory.push({ role: "assistant", content: "Chat error: " + e.message });
+      }
+
+      st.loadingChat = false;
+      renderMatches();
+    }
+
+    async function loadMatches() {
+      clearError();
+      currentView = document.getElementById("viewSelect").value;
+      const limit = document.getElementById("limitInput").value || 20;
+      const minProb = document.getElementById("minProbInput").value || 0;
+      let endpoint = `/api/radar/worldcup/${currentView}?limit=${encodeURIComponent(limit)}`;
+      if (currentView !== "live") endpoint += `&min_probability=${encodeURIComponent(minProb)}`;
+
+      try {
+        const data = await getJson(endpoint);
+        allMatches = data.matches || [];
+        renderMatches();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    async function boot() {
+      try {
+        await loadHealth();
+        await loadModels();
+        await loadMatches();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    function clearError() {
+      const el = document.getElementById("error");
+      el.textContent = "";
+      el.style.display = "none";
+    }
+
+    boot();
+    document.getElementById("searchInput").addEventListener("input", renderMatches);
+    document.getElementById("viewSelect").addEventListener("change", loadMatches);
+  </script>
+</body>
+</html>
