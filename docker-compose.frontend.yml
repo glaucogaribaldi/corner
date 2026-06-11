@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: wc_radar_frontend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
