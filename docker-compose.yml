@@ -1,0 +1,33 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: wc_radar_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: radar
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar_password
+    ports:
+      - "5438:5432"
+    volumes:
+      - wc_radar_pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: wc_radar_backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    network_mode: host
+    environment:
+      OLLAMA_BASE_URL: "http://127.0.0.1:11435"
+      OLLAMA_TIMEOUT: "180"
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  wc_radar_pgdata:
+    external: true
+    name: world-cup-corner-radar_wc_radar_pgdata
